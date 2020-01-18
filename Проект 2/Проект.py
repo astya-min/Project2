@@ -1,11 +1,22 @@
 import pygame
 import random
 
+GREEN = (31, 222, 37)
+WHITE = (255, 255, 255)
+GREEN = (51, 92, 36)
+BLACK = (0, 0, 0)
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 FPS = 30
 
+
+class Background(pygame.sprite.Sprite):
+    def __init__(self, image_file, location):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load(image_file)
+        self.rect = self.image.get_rect()
+        self.rect.left, self.rect.top = location
 
 
 class Mouse(pygame.sprite.Sprite):
@@ -54,7 +65,16 @@ class Mouse(pygame.sprite.Sprite):
             else:
                 self.rect.top = block.rect.bottom
 
+        cheeses_hit_list = pygame.sprite.spritecollide(self, self.cheeses, False)
+        for cheeses in cheeses_hit_list:
+            self.collected_cheeses += 1
+            cheeses.kill()
 
+        if pygame.sprite.spritecollideany(self, self.cats, False):
+            self.alive = False
+        if self.rect.x <= (wine.rect.x + 45) and self.rect.y <= (wine.rect.y + 45) and self.rect.x >= (
+                wine.rect.x) and self.rect.y >= (wine.rect.y):
+            self.win = True
 
 
 class Wall(pygame.sprite.Sprite):
@@ -62,7 +82,7 @@ class Wall(pygame.sprite.Sprite):
         super().__init__()
 
         self.image = pygame.Surface([width, height])
-        self.image.fill((51, 92, 36))
+        self.image.fill(GREEN)
 
         self.rect = self.image.get_rect()
         self.rect.y = y
@@ -91,10 +111,28 @@ class Wine(pygame.sprite.Sprite):
 
 class Cat(pygame.sprite.Sprite):
     def __init__(self, x, y, img='cat1.png'):
-        pass
+        super().__init__()
+
+        self.image = pygame.image.load(img).convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+        self.start = x
+        self.stop = x + random.randint(180, 240)
+        self.direction = 1
 
     def update(self):
-        pass
+
+        if self.rect.x >= self.stop:
+            self.rect.x = self.stop
+            self.direction = -1
+
+        if self.rect.x <= self.start:
+            self.rect.x = self.start
+            self.direction = 1
+
+        self.rect.x += self.direction * 2
 
 
 pygame.init()
@@ -157,9 +195,28 @@ mouse.cheeses = cheeses_list
 
 mouse.cats = cats_list
 
+font = pygame.font.SysFont('Arial', 42, True)
+text = font.render('ИГРА ОКОНЧЕНА', True, WHITE)
+text_win = font.render('Лабиринт пройден', True, BLACK)
+text_win2 = font.render('Вы выиграли!', True, BLACK)
+BackGround = Background('fon.png', [0, 0])
+
 clock = pygame.time.Clock()
+well = False
 done = False
 
+while not well:
+    BackGround1 = Background('wine-glass-and-bottle.png', [0, 0])
+    screen.blit(BackGround1.image, BackGround1.rect)
+    text_start = font.render('Нажмите F1, чтобы начать', True, WHITE)
+    screen.blit(text_start, (200, 200))
+    pygame.display.flip()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            well = True
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_F1:
+                well = True
 while not done:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -185,10 +242,27 @@ while not done:
                 mouse.change_y = 0
 
     screen.fill([255, 255, 255])
+    screen.blit(BackGround.image, BackGround.rect)
 
+    if not mouse.alive:
+        BackGround1 = Background('wine-glass-and-bottle.png', [0, 0])
+        screen.blit(BackGround1.image, BackGround1.rect)
+        screen.blit(text, (200, 150))
+        coll = font.render("Вы набрали: " + str(mouse.collected_cheeses), True, WHITE)
+        screen.blit(coll, (200, 200))
 
-    all_sprite_list.update()
-    all_sprite_list.draw(screen)
+    elif mouse.win:
+        BackGround_win = Background('end-fon.png', [0, 0])
+        screen.blit(BackGround_win.image, BackGround_win.rect)
+
+        screen.blit(text_win, (200, 150))
+        screen.blit(text_win2, (200, 200))
+        coll = font.render("Вы набрали: " + str(mouse.collected_cheeses), True, BLACK)
+        screen.blit(coll, (200, 250))
+        pygame.display.flip()
+    else:
+        all_sprite_list.update()
+        all_sprite_list.draw(screen)
 
     pygame.display.flip()
     clock.tick(60)
